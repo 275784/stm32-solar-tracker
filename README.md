@@ -1,4 +1,7 @@
+@ -1,151 +0,0 @@
 # STM32 Solar Tracker
+
+![Solar Tracker](images/solar-tracker.jpg)
 
 Low-power solar tracking system based on an STM32L152 microcontroller.
 

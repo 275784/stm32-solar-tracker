@@ -11,7 +11,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdlib.h> // Potrzebne do funkcji abs()
+#include <stdlib.h> // Required for abs()
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -21,9 +21,9 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define HYSTERESIS  300
-#define SERVO_MIN   100    // 1,0 ms  (100 * 10 µs)
-#define SERVO_MAX   200    // 2,0 ms
-#define SERVO_START 150    // 1,5 ms
+#define SERVO_MIN   100    // 1.0 ms (100 * 10 µs)
+#define SERVO_MAX   200    // 2.0 ms
+#define SERVO_START 150    // 1.5 ms
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -95,17 +95,17 @@ int main(void)
     int difference = 0;
     uint32_t current_servo_pos = SERVO_START;
 
-    // Zmienne do obsługi czasu
-    uint32_t last_switch_time = HAL_GetTick(); // czas startu
-    uint8_t system_state = 1; // 1 = PRACA (10s), 0 = SEN (5s)
+    // Timing variables
+    uint32_t last_switch_time = HAL_GetTick(); // Store the current time
+    uint8_t system_state = 1; // 1 = ACTIVE, 0 = SLEEP
 
-    // Zasilanie serwa WYŁĄCZONE na start
+    // Keep servo power disabled at startup
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
 
-    // Start PWM na Timerze 3
+    // Start PWM on Timer 3
     HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 
-    // Ustawienie pozycji startowej serwa
+    // Set the initial servo position
     __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, current_servo_pos);
 
   /* USER CODE END 2 */
@@ -114,7 +114,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
     while (1)
     {
-      // Aktualny czas w milisekundach
+      // Get the current system time in milliseconds
       uint32_t current_time = HAL_GetTick();
 
       if (system_state == 1)
@@ -122,22 +122,31 @@ int main(void)
           if (current_time - last_switch_time > 10000)
           {
               system_state = 0;
-              last_switch_time = current_time; // Reset licznika czasu
+              last_switch_time = current_time; // Reset the state timer
 
               HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
               continue;
           }
 
+          // Read both LDR sensors
           ldr_left = read_ADC_Channel(ADC_CHANNEL_0);
           ldr_right = read_ADC_Channel(ADC_CHANNEL_1);
+
+          // Calculate the difference between the sensor readings
           difference = (int)ldr_left - (int)ldr_right;
 
           if (abs(difference) > HYSTERESIS)
           {
+              // Enable servo power
               HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
-              HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
-              HAL_Delay(50); // Rozruch
 
+              // Turn on the status LED
+              HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+
+              // Allow the servo to start
+              HAL_Delay(50);
+
+              // Adjust the servo position towards the stronger light source
               if (ldr_left > ldr_right)
               {
                   if (current_servo_pos < SERVO_MAX) current_servo_pos += 2;
@@ -147,18 +156,26 @@ int main(void)
                   if (current_servo_pos > SERVO_MIN) current_servo_pos -= 2;
               }
 
+              // Update the servo PWM position
               __HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, current_servo_pos);
-              HAL_Delay(200); // Ruch serwa
 
+              // Allow time for the servo to move
+              HAL_Delay(200);
+
+              // Disable servo power after movement
               HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
           }
           else
           {
+              // Keep the servo disabled when no correction is required
               HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET);
+
+              // Turn off the status LED
               HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
           }
 
-          HAL_Delay(100); // przerwa między pomiarami w trybie pracy
+          // Delay between measurements during active operation
+          HAL_Delay(100);
       }
 
       else
@@ -170,6 +187,7 @@ int main(void)
               continue;
           }
 
+          // Enter Sleep mode during the inactive period
           HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
       }
 
@@ -211,7 +229,7 @@ void SystemClock_Config(void)
   /** Initializes the CPU, AHB and APB buses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+                              | RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -431,6 +449,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 uint32_t read_ADC_Channel(uint32_t channel)
 {
   ADC_ChannelConfTypeDef sConfig = {0};
@@ -453,6 +472,7 @@ uint32_t read_ADC_Channel(uint32_t channel)
 
   return 0;
 }
+
 /* USER CODE END 4 */
 
 /**
