@@ -1,4 +1,3 @@
-@ -1,151 +0,0 @@
 # STM32 Solar Tracker
 
 ![Solar Tracker](images/solar-tracker.jpg)
@@ -149,6 +148,5 @@ I was primarily responsible for the implementation of the project, including:
 - Add multi-axis tracking
 - Add weather-resistant mechanical enclosure
 
-## Authors
-
-- Konrad Misztela
+## Author
+**Konrad Misztela**
